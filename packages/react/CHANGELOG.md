@@ -1,5 +1,234 @@
 # wagmi
 
+## 0.5.0
+
+### Minor Changes
+
+- [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - **Breaking**: The `useContractWrite` hook parameters have been consolidated into a singular config parameter.
+
+  Before:
+
+  ```tsx
+  useContractWrite(
+    {
+      addressOrName: mlootContractAddress,
+      contractInterface: mlootABI,
+    },
+    'claim',
+  )
+  ```
+
+  After:
+
+  ```tsx
+  useContractWrite({
+    addressOrName: mlootContractAddress,
+    contractInterface: mlootABI,
+    functionName: 'claim',
+  })
+  ```
+
+* [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - **Breaking**: The `useContractEvent` hook parameters have been consolidated into a singular config parameter.
+
+  Before:
+
+  ```tsx
+  useContractEvent(
+    {
+      addressOrName: uniContractAddress,
+      contractInterface: erc20ABI,
+    },
+    'Transfer',
+    listener,
+  ),
+  ```
+
+  After:
+
+  ```tsx
+  useContractEvent({
+    addressOrName: uniContractAddress,
+    contractInterface: erc20ABI,
+    eventName: 'Transfer',
+    listener,
+  })
+  ```
+
+- [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - **Breaking**: The `client` prop is now required on `WagmiConfig`.
+
+  ````diff
+  ```tsx
+  import {
+    createClient,
+  + configureChains,
+  + defaultChains
+  } from 'wagmi'
+  +import { publicProvider } from 'wagmi/providers/public'
+
+  +const { provider, webSocketProvider } = configureChains(defaultChains, [
+  + publicProvider(),
+  +])
+
+  +const client = createClient({
+  + provider,
+  + webSocketProvider,
+  +})
+
+  function App() {
+    return (
+      <WagmiConfig
+  +     client={client}
+      >
+        <YourRoutes />
+      </WagmiConfig>
+    )
+  }
+  ````
+
+* [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - **Breaking**: The `provider` config option is now required on `createClient`. It is recommended to pass the [`provider` given from `configureChains`](https://wagmi.sh/docs/providers/configuring-chains).
+
+  ```diff
+  import {
+    createClient,
+  + defaultChains,
+  + configureChains
+  } from 'wagmi'
+  +import { publicProvider } from 'wagmi/providers/publicProvider'
+
+  +const { provider } = configureChains(defaultChains, [
+  + publicProvider
+  +])
+
+  const client = createClient({
+  + provider
+  })
+  ```
+
+  If you previously used an ethers.js Provider, you now need to provide your `chains` on the Provider instance:
+
+  ```diff
+  import {
+    createClient,
+  + defaultChains
+  } from 'wagmi'
+  import ethers from 'ethers'
+
+  const client = createClient({
+  - provider: getDefaultProvider()
+  + provider: Object.assign(getDefaultProvider(), { chains: defaultChains })
+  })
+  ```
+
+- [`4f8f3c0`](https://github.com/tmm/wagmi/commit/4f8f3c0d65383bd8bbdfc3f1033adfdb11d80ebb) Thanks [@nachoiacovino](https://github.com/nachoiacovino)! - Use ethereum-lists chains symbols
+
+* [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - **Breaking:** Removed the `chainId` parameter from `connectors` function on `createClient`.
+
+  ```diff
+  const client = createClient({
+  - connectors({ chainId }) {
+  + connectors() {
+      ...
+    }
+  })
+  ```
+
+  If you previously derived RPC URLs from the `chainId` on `connectors`, you can now remove that logic as `wagmi` now handles RPC URLs internally when used with `configureChains`.
+
+  ```diff
+  import {
+    chain,
+  +  configureChains,
+    createClient
+  } from 'wagmi';
+
+  +import { publicProvider } from 'wagmi/providers/public'
+
+  import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet'
+  import { InjectedConnector } from 'wagmi/connectors/injected'
+  import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
+  import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
+
+  +const { chains } = configureChains(
+  +  [chain.mainnet],
+  +  [publicProvider()]
+  +);
+
+  const client = createClient({
+  -  connectors({ chainId }) {
+  -    const chain = chains.find((x) => x.id === chainId) ?? defaultChain
+  -    const rpcUrl = chain.rpcUrls.alchemy
+  -      ? `${chain.rpcUrls.alchemy}/${alchemyId}`
+  -      : chain.rpcUrls.default
+  -    return [
+  +  connectors: [
+      new MetaMaskConnector({ chains }),
+      new CoinbaseWalletConnector({
+        chains,
+        options: {
+          appName: 'wagmi',
+  -       chainId: chain.id,
+  -       jsonRpcUrl: rpcUrl,
+        },
+      }),
+      new WalletConnectConnector({
+        chains,
+        options: {
+          qrcode: true,
+  -       rpc: { [chain.id]: rpcUrl },
+        },
+      }),
+      new InjectedConnector({
+        chains,
+        options: { name: 'Injected' },
+      }),
+    ]
+  -  },
+  })
+  ```
+
+- [#596](https://github.com/tmm/wagmi/pull/596) [`a770af7`](https://github.com/tmm/wagmi/commit/a770af7d2cb214b6620d5341115f1e938e1e77ff) Thanks [@tmm](https://github.com/tmm)! - **Breaking**: `TypedDataDomain` and `TypedDataField` types were removed and incorporated into `SignTypedDataArgs`.
+
+* [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - **Breaking**: The `useContractRead` hook parameters have been consolidated into a singular config parameter.
+
+  Before:
+
+  ```tsx
+  useContractRead(
+    {
+      addressOrName: wagmigotchiContractAddress,
+      contractInterface: wagmigotchiABI,
+    },
+    'love',
+    { args: '0x27a69ffba1e939ddcfecc8c7e0f967b872bac65c' },
+  )
+  ```
+
+  After:
+
+  ```tsx
+  useContractRead({
+    addressOrName: wagmigotchiContractAddress,
+    contractInterface: wagmigotchiABI,
+    functionName: 'love',
+    args: '0x27a69ffba1e939ddcfecc8c7e0f967b872bac65c',
+  })
+  ```
+
+### Patch Changes
+
+- [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - Added a `useContractInfiniteReads` hook that provides the ability to call multiple ethers Contract read-only methods with "infinite scrolling" ("fetch more") support. Useful for rendering a dynamic list of contract data.
+
+  [Learn more](https://wagmi.sh/docs/hooks/useContractInfiniteReads)
+
+* [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4) Thanks [@jxom](https://github.com/jxom)! - Added a `useContractReads` hook that provides the ability to batch up multiple ethers Contract read-only methods.
+
+  [Learn more](https://wagmi.sh/docs/hooks/useContractReads)
+
+- [#598](https://github.com/tmm/wagmi/pull/598) [`fef26bf`](https://github.com/tmm/wagmi/commit/fef26bf8aef76fc9621e3cd54d4e0ca8f69abb38) Thanks [@markdalgleish](https://github.com/markdalgleish)! - Update `@coinbase/wallet-sdk` to fix errors when connecting with older versions of the Coinbase Wallet extension and mobile app.
+
+- Updated dependencies [[`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4), [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4), [`4f8f3c0`](https://github.com/tmm/wagmi/commit/4f8f3c0d65383bd8bbdfc3f1033adfdb11d80ebb), [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4), [`a770af7`](https://github.com/tmm/wagmi/commit/a770af7d2cb214b6620d5341115f1e938e1e77ff), [`4f8f3c0`](https://github.com/tmm/wagmi/commit/4f8f3c0d65383bd8bbdfc3f1033adfdb11d80ebb), [`fef26bf`](https://github.com/tmm/wagmi/commit/fef26bf8aef76fc9621e3cd54d4e0ca8f69abb38), [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4), [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4), [`fc94210`](https://github.com/tmm/wagmi/commit/fc94210b67daa91aa164625dfe189d5b6c2f92d4)]:
+  - @wagmi/core@0.4.0
+
 ## 0.4.12
 
 ### Patch Changes
